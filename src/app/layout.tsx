@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Antigravity | Event Management Platform",
-  description: "Elite event management platform with Glassmorphism design.",
+  title: "Evento HIGH | Event Management Platform",
+  description: "Elite event management platform for high-end experiences.",
 };
 
 export default function RootLayout({

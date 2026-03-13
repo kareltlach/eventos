@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Orbit, Calendar, Users, BarChart3, Settings, LogOut, Package, FileText } from "lucide-react"
+import { Zap, Calendar, Users, BarChart3, Settings, LogOut, Package, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SidebarProps {
@@ -21,8 +21,8 @@ export function Sidebar({ user, profile }: SidebarProps) {
   return (
     <aside className="hidden md:flex w-64 flex-col glass-card m-4 rounded-2xl p-6 gap-8 border-r-0 fixed h-[calc(100vh-2rem)]">
       <Link href="/" className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-          <Orbit className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-white to-zinc-400 flex items-center justify-center border border-white/20 shadow-lg shadow-white/5">
+          <Zap className="w-5 h-5 text-black fill-black" />
         </div>
         <span className="font-bold text-xl tracking-tight text-white">Evento HIGH</span>
       </Link>

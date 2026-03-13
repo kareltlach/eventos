@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Orbit, UserPlus, ArrowRight } from "lucide-react"
+import { Zap, UserPlus, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { signUp } from "@/app/auth/actions"
 
@@ -45,8 +45,8 @@ export default function RegisterPage() {
       >
         <div className="glass-card p-8 rounded-2xl flex flex-col gap-6 relative z-10">
           <div className="flex flex-col items-center gap-2 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-2 border border-white/20">
-              <Orbit className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white to-zinc-400 flex items-center justify-center mb-2 border border-white/20 shadow-lg shadow-white/5">
+              <Zap className="w-6 h-6 text-black fill-black" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-white">Create Account</h1>
             <p className="text-zinc-400 text-sm">Join the Evento HIGH community</p>

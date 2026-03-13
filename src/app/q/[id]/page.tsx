@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { FileText, Calendar, MapPin, Check, Download, Printer, Clock, XCircle, AlertCircle } from "lucide-react"
+import { Zap, FileText, Calendar, MapPin, Check, Download, Printer, Clock, XCircle, AlertCircle } from "lucide-react"
 import { useParams } from "next/navigation"
 import { cn, formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
@@ -148,8 +148,8 @@ export default function PublicQuotePage() {
         {/* Header / Actions */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 glass-card p-6 rounded-3xl border-white/10">
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white to-zinc-400 text-black flex items-center justify-center font-black text-2xl shadow-2xl shadow-white/10">
-              {org?.name?.charAt(0) || 'A'}
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white to-zinc-400 text-black flex items-center justify-center shadow-2xl shadow-white/10">
+              <Zap className="w-7 h-7 text-black fill-black" />
             </div>
             <div className="flex flex-col">
               <h1 className="text-xl font-bold tracking-tight text-white">{org?.name || 'Fornecedor Parceiro'}</h1>
@@ -287,7 +287,7 @@ export default function PublicQuotePage() {
 
             <div className="p-1">
               <p className="text-[10px] text-center text-zinc-600 leading-relaxed font-medium uppercase tracking-widest">
-                Gerado via Evento HIGH em parceria com {org?.name}
+                Gerado via Evento HIGH
               </p>
             </div>
           </div>

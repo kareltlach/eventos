@@ -11,12 +11,9 @@ import {
   Loader2, 
   Edit2, 
   Trash2, 
-  X, 
   Filter, 
-  ArrowUpDown, 
   Package, 
   MoreVertical,
-  ChevronDown,
   LayoutGrid,
   List
 } from "lucide-react"
@@ -34,7 +31,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -52,7 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 
 interface Product {
   id: string

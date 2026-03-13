@@ -11,8 +11,6 @@ import {
   Edit2, 
   Loader2, 
   Search, 
-  Check, 
-  X, 
   Ruler, 
   Filter, 
   ArrowUpDown, 
@@ -31,7 +29,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -42,7 +39,6 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 
 interface UnitType {
   id: string

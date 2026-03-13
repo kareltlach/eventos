@@ -62,8 +62,9 @@ export default function RegisterPage() {
       toast.success("Account created successfully!")
       router.push("/")
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message || "Failed to register")
+    } catch (error: unknown) {
+      const err = error as Error
+      toast.error(err.message || "Failed to register")
       setLoading(false)
     }
   }

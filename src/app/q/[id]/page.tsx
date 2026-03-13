@@ -25,29 +25,27 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { 
-  Plus, 
   ArrowUpRight, 
-  ArrowDownRight,
   Calendar,
-  Users,
-  CheckCircle2,
   Clock,
-  ExternalLink,
-  MessageSquare,
-  CreditCard,
-  Check,
-  Zap,
-  MapPin,
   Download,
-  AlertCircle,
   ShieldCheck,
-  ChevronRight,
-  FileText,
-  User,
-  ArrowRight,
   Loader2,
-  ChevronDown
+  Printer,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  Check,
+  ChevronDown,
+  CreditCard,
+  ArrowRight,
+  MessageSquare,
+  MapPin,
+  User,
+  FileText
 } from "lucide-react"
+// @ts-ignore - html2pdf doesn't have official types easily available
+// Dynamic import will be handled in handleExportPDF
 
 
 interface Budget {
@@ -91,6 +89,7 @@ export default function PublicQuotePage() {
   const [loading, setLoading] = useState(true)
   const [isAccepting, setIsAccepting] = useState(false)
   const [isApprovingOnly, setIsApprovingOnly] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [wasApprovedOnly, setWasApprovedOnly] = useState(false)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
 
@@ -166,9 +165,14 @@ export default function PublicQuotePage() {
         },
         (payload) => {
           console.log("Realtime Update Received:", payload.new)
-          setBudget(payload.new as Budget)
+          const updatedBudget = payload.new as Budget
           
-          if (payload.new.status === 'approved') {
+          setBudget(prev => {
+            if (!prev) return updatedBudget
+            return { ...prev, ...updatedBudget }
+          })
+          
+          if (updatedBudget.status === 'approved') {
             toast.success("Proposta aprovada com sucesso!")
           }
         }
@@ -180,7 +184,84 @@ export default function PublicQuotePage() {
     }
   }, [id, fetchQuoteData, supabase])
 
+  const handleExportPDF = async () => {
+    setIsExporting(true)
+    const toastId = toast.loading("Gerando PDF da proposta...")
 
+    // Dynamically import html2pdf.js and jspdf only on the client side
+    // @ts-ignore
+    const html2pdf = (await import('html2pdf.js')).default
+    
+    // Small delay to ensure any layout shifts are settled
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const input = document.getElementById('quote-content')
+    if (!input) {
+      toast.error("Content not found for PDF export.", { id: toastId })
+      setIsExporting(false)
+      return
+    }
+
+    try {
+      const options = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: `proposta-evento-${budget?.customer_name || 'id'}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          backgroundColor: "#09090b",
+          logging: false,
+          scrollY: -window.scrollY
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      }
+
+      // Temporarily hide elements with .pdf-hide
+      const hideElements = document.querySelectorAll('.pdf-hide')
+      hideElements.forEach(el => (el as HTMLElement).style.display = 'none')
+
+      // Ensure the content is visible and layout is stable
+      if (input) {
+        // Force all opacities and transforms for capture to avoid "black void" issues with motion
+        const style = document.createElement('style')
+        style.id = 'pdf-export-overrides'
+        style.innerHTML = `
+          #quote-content * { 
+            opacity: 1 !important; 
+            visibility: visible !important;
+            transform: none !important;
+            transition: none !important;
+          }
+        `
+        document.head.appendChild(style)
+
+        const originalWidth = input.style.width
+        const originalMaxWidth = input.style.maxWidth
+        
+        input.style.width = '1200px'
+        input.style.maxWidth = 'none'
+        
+        await html2pdf().set(options).from(input).save()
+        
+        // Restore styles
+        input.style.width = originalWidth
+        input.style.maxWidth = originalMaxWidth
+        document.getElementById('pdf-export-overrides')?.remove()
+      }
+
+      // Restore hidden elements
+      hideElements.forEach(el => (el as HTMLElement).style.display = '')
+
+      toast.success("PDF exportado com sucesso!", { id: toastId })
+    } catch (error) {
+      console.error("PDF Export Error:", error)
+      toast.error("Erro ao gerar PDF. Tente novamente.", { id: toastId })
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   async function handleAccept() {
     if (!budget) return
@@ -195,6 +276,8 @@ export default function PublicQuotePage() {
       })
 
       if (result?.data?.url) {
+        // Optimistically set status if we're redirecting to payment
+        setBudget(prev => prev ? { ...prev, status: 'approved' } : prev)
         window.location.href = result.data.url
       } else if (result?.serverError) {
         toast.error(result.serverError)
@@ -219,6 +302,8 @@ export default function PublicQuotePage() {
       })
 
       if (result?.data?.success) {
+        // Optimistic update
+        setBudget(prev => prev ? { ...prev, status: 'approved' } : prev)
         setWasApprovedOnly(true)
         toast.success("Proposta aprovada com sucesso! Entraremos em contato.")
       } else if (result?.serverError) {
@@ -343,7 +428,7 @@ export default function PublicQuotePage() {
         )}
       </AnimatePresence>
 
-      <div className="max-w-4xl w-full flex flex-col gap-8">
+      <div className="max-w-4xl w-full flex flex-col gap-8" id="quote-content">
 
         
         {/* Floating Actions Header */}
@@ -368,21 +453,26 @@ export default function PublicQuotePage() {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto relative z-10">
-            <Button variant="outline" className="flex-1 md:flex-none border-border/50 hover:bg-card gap-2 h-11 px-5 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest">
-              <Download className="w-3.5 h-3.5" /> Export PDF
+            <Button 
+              disabled={isExporting}
+              onClick={handleExportPDF}
+              variant="outline" 
+              className="flex-1 md:flex-none border-border/50 hover:bg-card gap-2 h-11 px-5 rounded-xl transition-all font-bold text-[10px] uppercase tracking-widest pdf-hide"
+            >
+              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
+              {isExporting ? "Gerando..." : "Exportar PDF"}
             </Button>
             
             {(wasApprovedOnly || budget.status === 'approved') ? (
-              <Button disabled className="flex-1 md:flex-none bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 gap-2 h-11 px-8 rounded-xl font-bold text-[10px] uppercase tracking-widest">
+              <Button disabled className="flex-1 md:flex-none bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 gap-2 h-11 px-8 rounded-xl font-bold text-[10px] uppercase tracking-widest pdf-hide">
                 <Check className="w-3.5 h-3.5" /> Aprovada
               </Button>
             ) : (
               <DropdownMenu>
-                <DropdownMenuTrigger render={(props) => (
+                <DropdownMenuTrigger render={
                   <Button 
-                    {...props}
                     disabled={isAccepting || isApprovingOnly}
-                    className="flex-1 md:flex-none bg-primary text-primary-foreground hover:bg-primary/90 gap-2 h-11 px-8 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-primary/10 transition-all active:scale-95 disabled:opacity-50 group/btn"
+                    className="flex-1 md:flex-none bg-primary text-primary-foreground hover:bg-primary/90 gap-2 h-11 px-8 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-primary/10 transition-all active:scale-95 disabled:opacity-50 group/btn pdf-hide"
                   >
                     {isAccepting || isApprovingOnly ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -395,7 +485,7 @@ export default function PublicQuotePage() {
                       </>
                     )}
                   </Button>
-                )} />
+                } />
                 <DropdownMenuContent align="end" className="w-[280px] p-2 bg-card/80 backdrop-blur-2xl border-border/50 rounded-2xl shadow-2xl">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground px-3 py-2">Select Approval Method</DropdownMenuLabel>

@@ -11,10 +11,7 @@ import {
   Edit2, 
   Loader2, 
   Search, 
-  Check, 
-  X, 
   Tag, 
-  ChevronRight,
   Filter,
   ArrowUpDown,
   MoreVertical
@@ -32,7 +29,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -43,7 +39,6 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 
 interface Category {
   id: string
@@ -323,7 +318,7 @@ export default function CategoriesPage() {
               <div className="flex flex-col gap-1">
                 <h4 className="text-sm font-bold text-foreground">No categories found</h4>
                 <p className="text-xs text-muted-foreground max-w-[200px] mx-auto opacity-70">
-                  You haven't defined any groups yet. Start clustering your items now.
+                  You haven&apos;t defined any groups yet. Start clustering your items now.
                 </p>
               </div>
               <Button 

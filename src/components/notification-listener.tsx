@@ -24,7 +24,7 @@ export function NotificationListener({ orgId }: { orgId: string | null | undefin
           filter: `org_id=eq.${orgId}`
         },
         (payload) => {
-          const newNotification = payload.new as any
+          const newNotification = payload.new as { title: string; message: string }
           
           toast(newNotification.title, {
             description: newNotification.message,

@@ -7,8 +7,7 @@ import {
   Calendar,
   Users,
   CheckCircle2,
-  Clock,
-  ExternalLink
+  Clock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { 
@@ -138,7 +137,7 @@ export default async function DashboardPage() {
               <ActivityItem 
                 title="Budget Accepted" 
                 time="2h ago" 
-                desc="Apple Inc' accepted the 2024 Keynote budget."
+                desc="Apple Inc&apos; accepted the 2024 Keynote budget."
                 type="success"
               />
               <ActivityItem 

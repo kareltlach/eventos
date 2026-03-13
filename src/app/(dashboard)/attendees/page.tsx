@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { 
-  Search, Users, UserPlus, Mail, Phone, 
-  Building2, Tag, CheckCircle2, XCircle, 
+  Search, Users, UserPlus, 
+  Building2, CheckCircle2, XCircle, 
   MoreVertical, Edit2, Trash2, Filter,
-  ArrowUpDown, ChevronDown, Download
+  ArrowUpDown, Download
 } from "lucide-react"
 import { 
   Dialog, 
@@ -446,7 +446,7 @@ export default function AttendeesPage() {
               <div className="flex flex-col gap-1">
                 <h4 className="text-sm font-bold text-foreground">No attendees found</h4>
                 <p className="text-xs text-muted-foreground max-w-[200px] mx-auto opacity-70">
-                  We couldn't find any results matching your current search criteria.
+                  We couldn&apos;t find any results matching your current search criteria.
                 </p>
               </div>
               <Button 

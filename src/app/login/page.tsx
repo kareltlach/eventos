@@ -34,8 +34,8 @@ export default function LoginPage() {
       toast.success("Welcome back!")
       router.push("/")
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign in")
+    } catch (error: unknown) {
+      toast.error((error as Error).message || "Failed to sign in")
       setLoading(false)
     }
   }
@@ -114,7 +114,7 @@ export default function LoginPage() {
                 )}
               </Button>
               <div className="text-center">
-                <span className="text-xs text-muted-foreground font-medium">Don't have an account? </span>
+                <span className="text-xs text-muted-foreground font-medium">Don&apos;t have an account? </span>
                 <Link href="/register" className="text-xs font-bold text-primary hover:underline underline-offset-4">
                   Register platform
                 </Link>

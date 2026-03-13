@@ -5,7 +5,44 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Trash2, Edit2, Loader2, Search, Check, X, Ruler } from "lucide-react"
+import { 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  Loader2, 
+  Search, 
+  Check, 
+  X, 
+  Ruler, 
+  Filter, 
+  ArrowUpDown, 
+  MoreVertical 
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 interface UnitType {
   id: string
@@ -17,20 +54,20 @@ interface UnitType {
 export default function UnitsPage() {
   const [units, setUnits] = useState<UnitType[]>([])
   const [loading, setLoading] = useState(true)
-  const [isAdding, setIsAdding] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [newName, setNewName] = useState("")
-  const [newSymbol, setNewSymbol] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   
-  // Edit State
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
-  const [editSymbol, setEditSymbol] = useState("")
+  const [formData, setFormData] = useState({
+    name: "",
+    symbol: ""
+  })
 
   const supabase = createClient()
 
   const fetchUnits = useCallback(async () => {
+    setLoading(true)
     try {
       const { data, error } = await supabase
         .from("unit_types")
@@ -40,7 +77,7 @@ export default function UnitsPage() {
       if (error) throw error
       setUnits((data as UnitType[]) || [])
     } catch {
-      toast.error("Failed to load units")
+      toast.error("Failed to load unit types")
     } finally {
       setLoading(false)
     }
@@ -55,9 +92,22 @@ export default function UnitsPage() {
     unit.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  async function handleAdd() {
-    if (!newName.trim() || !newSymbol.trim()) {
-      toast.error("Please fill in both name and symbol")
+  const resetForm = () => {
+    setFormData({ name: "", symbol: "" })
+    setIsDialogOpen(false)
+    setEditingId(null)
+  }
+
+  const startEdit = (unit: UnitType) => {
+    setFormData({ name: unit.name, symbol: unit.symbol })
+    setEditingId(unit.id)
+    setIsDialogOpen(true)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formData.name.trim() || !formData.symbol.trim()) {
+      toast.error("Both name and symbol are required")
       return
     }
     
@@ -68,61 +118,40 @@ export default function UnitsPage() {
         .select("org_id")
         .single()
 
-      const { error } = await supabase
-        .from("unit_types")
-        .insert({
-          name: newName.trim(),
-          symbol: newSymbol.trim(),
-          org_id: profile?.org_id as string
-        })
+      if (editingId) {
+        const { error } = await supabase
+          .from("unit_types")
+          .update({ 
+            name: formData.name.trim(),
+            symbol: formData.symbol.trim()
+          })
+          .eq("id", editingId)
 
-      if (error) throw error
+        if (error) throw error
+        toast.success("Unit type updated")
+      } else {
+        const { error } = await supabase
+          .from("unit_types")
+          .insert({
+            name: formData.name.trim(),
+            symbol: formData.symbol.trim(),
+            org_id: profile?.org_id as string
+          })
+
+        if (error) throw error
+        toast.success("Unit type created successfully")
+      }
       
-      toast.success("Unit type added")
-      setNewName("")
-      setNewSymbol("")
-      setIsAdding(false)
+      resetForm()
       fetchUnits()
     } catch (err: unknown) {
-      const error = err as Error
-      toast.error(error.message)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  async function handleSaveEdit(id: string) {
-    if (!editName.trim() || !editSymbol.trim()) {
-      toast.error("Name and symbol cannot be empty")
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      const { error } = await supabase
-        .from("unit_types")
-        .update({ 
-          name: editName.trim(),
-          symbol: editSymbol.trim()
-        })
-        .eq("id", id)
-
-      if (error) throw error
-      
-      toast.success("Unit updated")
-      setEditingId(null)
-      fetchUnits()
-    } catch (err: unknown) {
-      const error = err as Error
-      toast.error(error.message)
+      toast.error((err as Error).message)
     } finally {
       setIsSaving(false)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remove this unit type?")) return
-
     try {
       const { error } = await supabase
         .from("unit_types")
@@ -130,161 +159,177 @@ export default function UnitsPage() {
         .eq("id", id)
 
       if (error) throw error
-      toast.success("Unit deleted")
+      toast.success("Unit type removed")
       fetchUnits()
     } catch (err: unknown) {
-      const error = err as Error
-      toast.error(error.message)
+      toast.error((err as Error).message)
     }
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <Input 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search units..." 
-            className="pl-10 bg-white/5 border-white/10 focus:bg-white/10 text-white w-full"
-          />
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+             <Badge variant="outline" className="px-1.5 py-0 border-primary/20 text-primary bg-primary/5 font-bold uppercase tracking-widest text-[10px]">
+              Metrics
+            </Badge>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">•</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{units.length} Units</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Unit Types</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">Define standard measurement units for your catalog items.</p>
         </div>
-        <Button 
-          onClick={() => setIsAdding(true)}
-          disabled={isAdding}
-          className="bg-white text-black hover:bg-zinc-200 gap-2 w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4" /> Add Unit
-        </Button>
+        <div className="flex items-center gap-2">
+           <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open)
+            if (!open) resetForm()
+          }}>
+            <DialogTrigger render={
+              <Button size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest gap-2 shadow-lg shadow-primary/10">
+                <Plus className="w-3 h-3" /> New Unit
+              </Button>
+            } />
+            <DialogContent className="border-border/50 bg-card/95 backdrop-blur-xl sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold">{editingId ? 'Edit Unit Type' : 'Add Unit Type'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Standard Name</label>
+                  <Input 
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. Kilograms or Hours"
+                    className="h-9 px-3 text-sm border-border/50 bg-background/50"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Symbol / Abbreviation</label>
+                  <Input 
+                    required
+                    value={formData.symbol}
+                    onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
+                    placeholder="e.g. kg, h, pc"
+                    className="h-9 px-3 text-sm border-border/50 bg-background/50"
+                  />
+                </div>
+                <DialogFooter className="mt-4">
+                  <Button type="submit" disabled={isSaving} className="w-full text-xs font-bold uppercase tracking-widest h-10 shadow-lg shadow-primary/20">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Save Changes' : 'Create Unit')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {isAdding && (
-        <div className="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-end md:items-center gap-4 animate-in fade-in slide-in-from-top-4 border-white/20">
-          <div className="flex-1 w-full flex flex-col gap-2">
-            <label className="text-[10px] uppercase font-bold text-zinc-500 ml-1">Unit Name</label>
-            <Input 
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Ex: Kilogram"
-              className="bg-zinc-900 border-white/10 text-white h-11"
-              autoFocus
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-4 h-10 px-1 border-b border-border/20">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="relative w-full max-w-[300px]">
+            <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+            <input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter by name or symbol..." 
+              className="pl-6 bg-transparent border-none text-[11px] placeholder:text-muted-foreground/40 focus:ring-0 w-full outline-none text-foreground font-medium"
             />
           </div>
-          <div className="w-full md:w-32 flex flex-col gap-2">
-            <label className="text-[10px] uppercase font-bold text-zinc-500 ml-1">Symbol</label>
-            <Input 
-              value={newSymbol}
-              onChange={(e) => setNewSymbol(e.target.value)}
-              placeholder="Ex: kg"
-              className="bg-zinc-900 border-white/10 text-white h-11"
-            />
-          </div>
-          <div className="flex items-center gap-2 pt-2 md:pt-6">
-            <Button onClick={handleAdd} disabled={isSaving} className="min-w-[80px]">
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Unit"}
-            </Button>
-            <Button variant="ghost" onClick={() => setIsAdding(false)}>Cancel</Button>
-          </div>
+          <div className="h-4 w-[1px] bg-border/30" />
+          <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground gap-1.5">
+            <Filter className="w-3 h-3" /> Filter
+          </Button>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-tighter text-right">Reference Data</span>
+          <ArrowUpDown className="w-3 h-3 text-muted-foreground/30" />
+        </div>
+      </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <div className="flex-1 flex flex-col items-center justify-center py-32 gap-4">
+           <Loader2 className="w-6 h-6 animate-spin text-primary" />
+           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Calibrating Units</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredUnits.map((unit) => (
-            <div key={unit.id} className="glass-card p-6 rounded-2xl flex items-center justify-between group hover:bg-white/5 transition-all min-h-[100px] border-white/5 hover:border-white/10">
-              {editingId === unit.id ? (
-                <div className="flex flex-col gap-3 w-full animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex flex-col gap-2">
-                    <Input 
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="bg-zinc-900 border-white/10 text-white h-9 w-full"
-                      placeholder="Name"
-                      autoFocus
-                    />
-                    <Input 
-                      value={editSymbol}
-                      onChange={(e) => setEditSymbol(e.target.value)}
-                      className="bg-zinc-900 border-white/10 text-white h-9 w-full"
-                      placeholder="Symbol"
-                    />
-                  </div>
-                  <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-2">
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-green-400 hover:bg-green-400/10 h-8 font-medium" 
-                      onClick={() => handleSaveEdit(unit.id)}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Check className="w-3.5 h-3.5 mr-1" />}
-                      Save
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-zinc-400 hover:bg-white/10 h-8 font-medium" 
-                      onClick={() => setEditingId(null)}
-                    >
-                      <X className="w-3.5 h-3.5 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      <Ruler className="w-5 h-5 text-zinc-400" />
+        <div className="rounded-lg border border-border/40 bg-card/10 overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="hover:bg-transparent border-border/40">
+                <TableHead className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-6">Unit Designation</TableHead>
+                <TableHead className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-6">Symbol</TableHead>
+                <TableHead className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-6">System ID</TableHead>
+                <TableHead className="h-10 w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUnits.map((unit) => (
+                <TableRow key={unit.id} className="group border-border/30 hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="px-6 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center border border-border/30">
+                        <Ruler className="w-3.5 h-3.5 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-bold text-foreground tracking-tight">{unit.name}</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white tracking-tight">{unit.name}</span>
-                      <span className="text-zinc-500 text-sm font-mono">{unit.symbol}</span>
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <code className="text-[10px] font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/20">
+                      {unit.symbol}
+                    </code>
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <span className="text-[9px] font-mono text-muted-foreground/40 uppercase">
+                      {unit.id.split('-')[0]}...
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md">
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        } />
+                        <DropdownMenuContent align="end" className="w-40 border-border/50 bg-card/95 backdrop-blur-xl">
+                          <DropdownMenuItem onClick={() => startEdit(unit)} className="text-xs font-semibold gap-2 py-2">
+                             <Edit2 className="w-3 h-3" /> Modify Settings
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(unit.id)} className="text-xs font-semibold gap-2 py-2 text-rose-500 focus:text-rose-500 focus:bg-rose-500/10 cursor-pointer">
+                            <Trash2 className="w-3 h-3" /> Rescind Unit
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 hover:bg-white/10 text-zinc-500 hover:text-white transition-colors"
-                      onClick={() => {
-                        setEditingId(unit.id)
-                        setEditName(unit.name)
-                        setEditSymbol(unit.symbol)
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDelete(unit.id)}
-                      className="h-8 w-8 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-
-          {filteredUnits.length === 0 && !isAdding && (
-            <div className="col-span-full py-20 text-center glass-card rounded-2xl border-dashed border-white/5 flex flex-col items-center gap-3">
-              <Search className="w-8 h-8 text-zinc-700" />
-              <p className="text-zinc-500 font-medium">
-                {searchQuery ? `No results found for "${searchQuery}"` : "You haven't added any unit types yet."}
-              </p>
-              {!searchQuery && (
-                <Button variant="outline" onClick={() => setIsAdding(true)} className="mt-2 border-white/10 hover:bg-white/5">
-                  Add Your First Unit
-                </Button>
-              )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          {filteredUnits.length === 0 && (
+            <div className="py-24 text-center flex flex-col items-center gap-4 bg-white/[0.01]">
+              <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/30">
+                <Ruler className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h4 className="text-sm font-bold text-foreground">No units defined</h4>
+                <p className="text-xs text-muted-foreground max-w-[200px] mx-auto opacity-70">
+                  Standardize your catalog measurements by adding your first unit type.
+                </p>
+              </div>
+              <Button 
+                onClick={() => setIsDialogOpen(true)}
+                variant="outline" 
+                size="sm"
+                className="mt-2 border-border/50 text-xs font-bold uppercase tracking-widest h-9 px-6 rounded-md"
+              >
+                Create Standard Unit
+              </Button>
             </div>
           )}
         </div>

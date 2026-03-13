@@ -5,7 +5,45 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Trash2, Edit2, Loader2, Search, Check, X, Tag } from "lucide-react"
+import { 
+  Plus, 
+  Trash2, 
+  Edit2, 
+  Loader2, 
+  Search, 
+  Check, 
+  X, 
+  Tag, 
+  ChevronRight,
+  Filter,
+  ArrowUpDown,
+  MoreVertical
+} from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
 interface Category {
   id: string
@@ -17,18 +55,19 @@ interface Category {
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [isAdding, setIsAdding] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [newName, setNewName] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
   
-  // Edit State
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
+  const [formData, setFormData] = useState({
+    name: ""
+  })
 
   const supabase = createClient()
 
   const fetchCategories = useCallback(async () => {
+    setLoading(true)
     try {
       const { data, error } = await supabase
         .from("product_categories")
@@ -55,19 +94,32 @@ export default function CategoriesPage() {
 
   const generateSlug = (text: string) => {
     return text
-      .normalize("NFD") // Split characters from their accents
-      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, '-') // Replace spaces with -
-      .replace(/[^\w-]/g, '') // Remove all non-word chars
-      .replace(/--+/g, '-') // Replace multiple - with single -
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]/g, '')
+      .replace(/--+/g, '-')
   }
 
-  async function handleAdd() {
-    const trimmedName = newName.trim()
+  const resetForm = () => {
+    setFormData({ name: "" })
+    setIsDialogOpen(false)
+    setEditingId(null)
+  }
+
+  const startEdit = (cat: Category) => {
+    setFormData({ name: cat.name })
+    setEditingId(cat.id)
+    setIsDialogOpen(true)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmedName = formData.name.trim()
     if (!trimmedName) {
-      toast.error("Category name cannot be empty")
+      toast.error("Category name is required")
       return
     }
     
@@ -80,69 +132,40 @@ export default function CategoriesPage() {
 
       if (!profile?.org_id) throw new Error("Organization not found")
 
-      const baseSlug = generateSlug(trimmedName)
-      const slug = `${baseSlug}-${Math.floor(Math.random() * 1000)}`
-      
-      const { error } = await supabase
-        .from("product_categories")
-        .insert({
-          name: trimmedName,
-          slug,
-          org_id: profile.org_id
-        })
+      if (editingId) {
+        const { error } = await supabase
+          .from("product_categories")
+          .update({ name: trimmedName })
+          .eq("id", editingId)
 
-      if (error) throw error
+        if (error) throw error
+        toast.success("Category updated")
+      } else {
+        const baseSlug = generateSlug(trimmedName)
+        const slug = `${baseSlug}-${Math.floor(Math.random() * 1000)}`
+        
+        const { error } = await supabase
+          .from("product_categories")
+          .insert({
+            name: trimmedName,
+            slug,
+            org_id: profile.org_id
+          })
+
+        if (error) throw error
+        toast.success("Category created successfully")
+      }
       
-      toast.success("Category added successfully")
-      setNewName("")
-      setIsAdding(false)
+      resetForm()
       fetchCategories()
     } catch (err) {
-      const error = err as Error
-      toast.error(error.message)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  async function handleSaveEdit(id: string) {
-    const trimmedName = editName.trim()
-    if (!trimmedName) {
-      toast.error("Category name cannot be empty")
-      return
-    }
-
-    setIsSaving(true)
-    try {
-      // We only update the slug if the name changed significantly, 
-      // but for stability we'll keep the original slug if possible.
-      // However, if the user really wants to change it, we can generate a new one.
-      // Usually, just updating the name is enough.
-      
-      const { error } = await supabase
-        .from("product_categories")
-        .update({ 
-          name: trimmedName
-          // Keeping the original slug for link stability
-        })
-        .eq("id", id)
-
-      if (error) throw error
-      
-      toast.success("Category updated")
-      setEditingId(null)
-      fetchCategories()
-    } catch (err) {
-      const error = err as Error
-      toast.error(error.message)
+      toast.error((err as Error).message)
     } finally {
       setIsSaving(false)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure? This will remove the category from all associated products.")) return
-
     try {
       const { error } = await supabase
         .from("product_categories")
@@ -150,138 +173,167 @@ export default function CategoriesPage() {
         .eq("id", id)
 
       if (error) throw error
-      toast.success("Category deleted")
+      toast.success("Category removed")
       fetchCategories()
     } catch (err) {
-      const error = err as Error
-      toast.error(error.message)
+      toast.error((err as Error).message)
     }
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <Input 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search categories..." 
-            className="pl-10 bg-white/5 border-white/10 focus:bg-white/10 text-white w-full"
-          />
+    <div className="flex flex-col gap-6 pb-12">
+       {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+             <Badge variant="outline" className="px-1.5 py-0 border-primary/20 text-primary bg-primary/5 font-bold uppercase tracking-widest text-[10px]">
+              Taxonomy
+            </Badge>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">•</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{categories.length} Groups</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Product Categories</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">Organize your offerings into meaningful groups.</p>
         </div>
-        <Button 
-          onClick={() => setIsAdding(true)}
-          disabled={isAdding}
-          className="bg-white text-black hover:bg-zinc-200 gap-2 w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4" /> Add Category
-        </Button>
+        <div className="flex items-center gap-2">
+           <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open)
+            if (!open) resetForm()
+          }}>
+            <DialogTrigger render={
+              <Button size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest gap-2 shadow-lg shadow-primary/10">
+                <Plus className="w-3 h-3" /> New Category
+              </Button>
+            } />
+            <DialogContent className="border-border/50 bg-card/95 backdrop-blur-xl sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold">{editingId ? 'Edit Category' : 'Create Category'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Category Name</label>
+                  <Input 
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ name: e.target.value })}
+                    placeholder="e.g. Audio Equipment"
+                    className="h-9 px-3 text-sm border-border/50 bg-background/50"
+                  />
+                </div>
+                <DialogFooter className="mt-4">
+                  <Button type="submit" disabled={isSaving} className="w-full text-xs font-bold uppercase tracking-widest h-10 shadow-lg shadow-primary/20">
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingId ? 'Save Changes' : 'Add Category')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {isAdding && (
-        <div className="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-end md:items-center gap-4 animate-in fade-in slide-in-from-top-4 border-white/20">
-          <div className="flex-1 w-full flex flex-col gap-2">
-            <label className="text-[10px] uppercase font-bold text-zinc-500 ml-1">Category Name</label>
-            <Input 
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Ex: Mobiliário ou Som Profissional"
-              className="bg-zinc-900 border-white/10 text-white h-11"
-              autoFocus
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-4 h-10 px-1 border-b border-border/20">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="relative w-full max-w-[300px]">
+            <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
+            <input 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter by name or slug..." 
+              className="pl-6 bg-transparent border-none text-[11px] placeholder:text-muted-foreground/40 focus:ring-0 w-full outline-none text-foreground font-medium"
             />
           </div>
-          <div className="flex items-center gap-2 pt-2 md:pt-6">
-            <Button onClick={handleAdd} disabled={isSaving} className="min-w-[120px]">
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Category"}
-            </Button>
-            <Button variant="ghost" onClick={() => setIsAdding(false)}>Cancel</Button>
-          </div>
+          <div className="h-4 w-[1px] bg-border/30" />
+          <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground gap-1.5">
+            <Filter className="w-3 h-3" /> Filter
+          </Button>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-tighter text-right">Alphabetical</span>
+          <ArrowUpDown className="w-3 h-3 text-muted-foreground/30" />
+        </div>
+      </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <div className="flex-1 flex flex-col items-center justify-center py-32 gap-4">
+           <Loader2 className="w-6 h-6 animate-spin text-primary" />
+           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Mapping Taxonomy</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-          {filteredCategories.map((cat) => (
-            <div key={cat.id} className="glass-card p-6 rounded-2xl flex items-center justify-between group hover:bg-white/5 transition-all min-h-[100px] border-white/5 hover:border-white/10">
-              {editingId === cat.id ? (
-                <div className="flex flex-col gap-3 w-full animate-in fade-in zoom-in-95 duration-200">
-                  <Input 
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="bg-zinc-900 border-white/10 text-white h-9 w-full"
-                    placeholder="Category Name"
-                    autoFocus
-                  />
-                  <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-2">
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-green-400 hover:bg-green-400/10 h-8 font-medium" 
-                      onClick={() => handleSaveEdit(cat.id)}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Check className="w-3.5 h-3.5 mr-1" />}
-                      Save
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-zinc-400 hover:bg-white/10 h-8 font-medium" 
-                      onClick={() => setEditingId(null)}
-                    >
-                      <X className="w-3.5 h-3.5 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                      <Tag className="w-5 h-5 text-zinc-400" />
+        <div className="rounded-lg border border-border/40 bg-card/10 overflow-hidden">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="hover:bg-transparent border-border/40">
+                <TableHead className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-6">Classification Name</TableHead>
+                <TableHead className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-6">Identification Slug</TableHead>
+                <TableHead className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70 px-6">Created</TableHead>
+                <TableHead className="h-10 w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCategories.map((cat) => (
+                <TableRow key={cat.id} className="group border-border/30 hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="px-6 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center border border-primary/10">
+                        <Tag className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <span className="text-sm font-bold text-foreground tracking-tight">{cat.name}</span>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white tracking-tight text-lg">{cat.name}</span>
-                      <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">{cat.slug}</span>
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <code className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/30">
+                      {cat.slug}
+                    </code>
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <span className="text-xs font-medium text-muted-foreground/60">
+                      {new Date(cat.created_at).toLocaleDateString()}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-6 py-3">
+                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger render={
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md">
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </Button>
+                        } />
+                        <DropdownMenuContent align="end" className="w-40 border-border/50 bg-card/95 backdrop-blur-xl">
+                          <DropdownMenuItem onClick={() => startEdit(cat)} className="text-xs font-semibold gap-2 py-2">
+                            <Edit2 className="w-3 h-3" /> Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(cat.id)} className="text-xs font-semibold gap-2 py-2 text-rose-500 focus:text-rose-500 focus:bg-rose-500/10 cursor-pointer">
+                            <Trash2 className="w-3 h-3" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 hover:bg-white/10 text-zinc-500 hover:text-white transition-colors"
-                      onClick={() => {
-                        setEditingId(cat.id)
-                        setEditName(cat.name)
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDelete(cat.id)}
-                      className="h-8 w-8 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-
-          {filteredCategories.length === 0 && !isAdding && (
-            <div className="col-span-full py-20 text-center glass-card rounded-2xl border-dashed border-white/5 flex flex-col items-center gap-3">
-              <Search className="w-8 h-8 text-zinc-700" />
-              <p className="text-zinc-500 font-medium">
-                {searchQuery ? `Nenhuma categoria encontrada para "${searchQuery}"` : "Nenhuma categoria cadastrada ainda."}
-              </p>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          {filteredCategories.length === 0 && (
+            <div className="py-24 text-center flex flex-col items-center gap-4 bg-white/[0.01]">
+              <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/30">
+                <Tag className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h4 className="text-sm font-bold text-foreground">No categories found</h4>
+                <p className="text-xs text-muted-foreground max-w-[200px] mx-auto opacity-70">
+                  You haven't defined any groups yet. Start clustering your items now.
+                </p>
+              </div>
+              <Button 
+                onClick={() => setIsDialogOpen(true)}
+                variant="outline" 
+                size="sm"
+                className="mt-2 border-border/50 text-xs font-bold uppercase tracking-widest h-9 px-6 rounded-md"
+              >
+                Create Group
+              </Button>
             </div>
           )}
         </div>

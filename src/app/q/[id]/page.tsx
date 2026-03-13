@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { FileText, Calendar, MapPin, Check, Download, Printer, Clock, XCircle, AlertCircle } from "lucide-react"
 import { useParams } from "next/navigation"
 import { format } from "date-fns"
+import { createCheckoutSession } from "@/app/actions/payments"
 
 export default function PublicQuotePage() {
   const params = useParams()
@@ -17,6 +18,7 @@ export default function PublicQuotePage() {
   const [items, setItems] = useState<any[]>([])
   const [org, setOrg] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isAccepting, setIsAccepting] = useState(false)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,6 +29,33 @@ export default function PublicQuotePage() {
       setLoading(false)
     }
   }, [id, params])
+
+  async function handleAccept() {
+    if (!budget) return
+    
+    setIsAccepting(true)
+    try {
+      const result = await createCheckoutSession({
+        budgetId: budget.id,
+        amount: budget.total_amount,
+        customerName: budget.customer_name,
+        customerEmail: budget.customer_email || undefined,
+      })
+
+      if (result?.data?.url) {
+        window.location.href = result.data.url
+      } else if (result?.serverError) {
+        toast.error(result.serverError)
+      } else {
+        toast.error("Ocorreu um erro ao processar o pagamento.")
+      }
+    } catch (err) {
+      console.error("Payment Error:", err)
+      toast.error("Erro na comunicação com o servidor de pagamentos.")
+    } finally {
+      setIsAccepting(false)
+    }
+  }
 
   async function fetchQuoteData() {
     try {
@@ -133,8 +162,17 @@ export default function PublicQuotePage() {
             <Button variant="outline" className="flex-1 md:flex-none border-white/10 hover:bg-white/5 gap-2 h-12 px-6 rounded-2xl transition-all">
               <Download className="w-4 h-4" /> PDF
             </Button>
-            <Button className="flex-1 md:flex-none bg-white text-black hover:bg-zinc-200 gap-2 h-12 px-8 rounded-2xl font-bold shadow-xl shadow-white/5 transition-all active:scale-95">
-              <Check className="w-4 h-4" /> Aceitar Proposta
+            <Button 
+              onClick={handleAccept}
+              disabled={isAccepting}
+              className="flex-1 md:flex-none bg-white text-black hover:bg-zinc-200 gap-2 h-12 px-8 rounded-2xl font-bold shadow-xl shadow-white/5 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isAccepting ? (
+                <div className="w-4 h-4 border-2 border-zinc-500 border-t-black rounded-full animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              {isAccepting ? "Processando..." : "Aceitar Proposta"}
             </Button>
           </div>
         </div>

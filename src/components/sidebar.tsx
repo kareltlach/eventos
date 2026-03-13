@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Orbit, Calendar, Users, BarChart3, Settings, LogOut, Package } from "lucide-react"
+import { Orbit, Calendar, Users, BarChart3, Settings, LogOut, Package, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SidebarProps {
@@ -39,6 +39,12 @@ export function Sidebar({ user, profile }: SidebarProps) {
           icon={<Package className="w-5 h-5" />} 
           label="Catalog" 
           active={pathname.startsWith("/catalog")} 
+        />
+        <NavItem 
+          href="/budgets" 
+          icon={<FileText className="w-5 h-5" />} 
+          label="Budgets" 
+          active={pathname.startsWith("/budgets")} 
         />
         <NavItem 
           href="/attendees" 

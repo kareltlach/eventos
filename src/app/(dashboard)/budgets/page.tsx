@@ -8,6 +8,8 @@ import { toast } from "sonner"
 import { Plus, Search, FileText, Clock, CheckCircle2, XCircle, Send, MoreVertical, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
+import { Mail, MessageCircle, Copy, Share2 } from "lucide-react"
+import { sendQuoteEmail } from "@/app/actions/notifications"
 
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<any[]>([])
@@ -25,7 +27,10 @@ export default function BudgetsPage() {
     try {
       const { data, error } = await supabase
         .from("budget_requests")
-        .select("*")
+        .select(`
+          *,
+          organizations (name)
+        `)
         .order("created_at", { ascending: false })
       
       if (error) throw error
@@ -35,6 +40,38 @@ export default function BudgetsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCopyLink = (id: string) => {
+    const url = `${window.location.origin}/q/${id}`
+    navigator.clipboard.writeText(url)
+    toast.success("Link copiado para a área de transferência!")
+  }
+
+  const handleWhatsApp = (budget: any) => {
+    const url = `${window.location.origin}/q/${budget.id}`
+    const message = `Olá ${budget.customer_name}! Segue a proposta da ${budget.organizations?.name || 'Evento HIGH'} para o seu evento: ${url}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+  }
+
+  const handleSendEmail = async (budget: any) => {
+    if (!budget.customer_email) {
+      toast.error("Cliente não possui email cadastrado.")
+      return
+    }
+
+    const promise = sendQuoteEmail({
+      to: budget.customer_email,
+      customerName: budget.customer_name,
+      quoteUrl: `${window.location.origin}/q/${budget.id}`,
+      orgName: budget.organizations?.name || 'Evento HIGH'
+    })
+
+    toast.promise(promise, {
+      loading: 'Enviando email...',
+      success: 'Email enviado com sucesso!',
+      error: (err) => err.message || 'Erro ao enviar email'
+    })
   }
 
   const filteredBudgets = budgets.filter(b => 
@@ -133,15 +170,40 @@ export default function BudgetsPage() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1 sm:gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleCopyLink(budget.id)}
+                          className="h-8 w-8 text-zinc-500 hover:text-white"
+                          title="Copy Link"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleWhatsApp(budget)}
+                          className="h-8 w-8 text-zinc-500 hover:text-green-500"
+                          title="Share via WhatsApp"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleSendEmail(budget)}
+                          className="h-8 w-8 text-zinc-500 hover:text-blue-500"
+                          title="Send via Email"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                        </Button>
+                        <div className="w-px h-4 bg-white/10 mx-1 hidden sm:block" />
                         <Link href={`/q/${budget.id}`} target="_blank">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-white/10">
-                            <ExternalLink className="w-4 h-4" />
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white">
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </Button>
                         </Link>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-white/10">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
                       </div>
                     </td>
                   </tr>

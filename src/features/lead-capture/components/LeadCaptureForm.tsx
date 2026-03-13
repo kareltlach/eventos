@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -42,6 +42,11 @@ export function LeadCaptureForm({ products, orgId, orgName }: LeadCaptureFormPro
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Form State
   const [details, setDetails] = useState({
@@ -345,7 +350,7 @@ export function LeadCaptureForm({ products, orgId, orgName }: LeadCaptureFormPro
         <div className="flex items-center gap-4 h-4">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <div className="w-[1px] h-full bg-border" />
-          <span className="text-[8px] font-mono tracking-tighter">EST. SESSION: {new Date().toLocaleTimeString()}</span>
+          <span className="text-[8px] font-mono tracking-tighter">EST. SESSION: {mounted ? new Date().toLocaleTimeString() : "--:--:--"}</span>
         </div>
       </div>
     </div>

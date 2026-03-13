@@ -9,79 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      budget_items: {
-        Row: {
-          budget_id: string | null
-          description: string
-          id: string
-          quantity: number
-          total_price: number | null
-          unit_price: number
-        }
-        Insert: {
-          budget_id?: string | null
-          description: string
-          id?: string
-          quantity: number
-          total_price?: number | null
-          unit_price: number
-        }
-        Update: {
-          budget_id?: string | null
-          description?: string
-          id?: string
-          quantity?: number
-          total_price?: number | null
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_items_budget_id_fkey"
-            columns: ["budget_id"]
-            isOneToOne: false
-            referencedRelation: "budget_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      budget_requests: {
-        Row: {
-          created_at: string | null
-          customer_info: Json
-          event_details: Json
-          id: string
-          org_id: string | null
-          status: string | null
-          total_amount: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          customer_info: Json
-          event_details: Json
-          id?: string
-          org_id?: string | null
-          status?: string | null
-          total_amount?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          customer_info?: Json
-          event_details?: Json
-          id?: string
-          org_id?: string | null
-          status?: string | null
-          total_amount?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "budget_requests_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       organizations: {
         Row: {
           created_at: string | null
@@ -131,6 +58,223 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_categories: {
+        Row: {
+          id: string
+          org_id: string
+          name: string
+          slug: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          name: string
+          slug: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          name?: string
+          slug?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_types: {
+        Row: {
+          id: string
+          org_id: string
+          name: string
+          symbol: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          name: string
+          symbol: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          name?: string
+          symbol?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_types_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          id: string
+          org_id: string
+          category_id: string | null
+          unit_type_id: string | null
+          name: string
+          description: string | null
+          base_price: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          category_id?: string | null
+          unit_type_id?: string | null
+          name: string
+          description?: string | null
+          base_price?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          category_id?: string | null
+          unit_type_id?: string | null
+          name?: string
+          description?: string | null
+          base_price?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_unit_type_id_fkey"
+            columns: ["unit_type_id"]
+            isOneToOne: false
+            referencedRelation: "unit_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_requests: {
+        Row: {
+          created_at: string | null
+          customer_info: Json
+          event_details: Json
+          id: string
+          org_id: string | null
+          status: string | null
+          total_amount: number | null
+          valid_until: string | null
+          internal_notes: string | null
+          customer_name: string | null
+          customer_email: string | null
+          customer_phone: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_info: Json
+          event_details: Json
+          id?: string
+          org_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          valid_until?: string | null
+          internal_notes?: string | null
+          customer_name?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_info?: Json
+          event_details?: Json
+          id?: string
+          org_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          valid_until?: string | null
+          internal_notes?: string | null
+          customer_name?: string | null
+          customer_email?: string | null
+          customer_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_items: {
+        Row: {
+          budget_id: string | null
+          description: string
+          id: string
+          quantity: number
+          total_price: number | null
+          unit_price: number
+          product_id: string | null
+        }
+        Insert: {
+          budget_id?: string | null
+          description: string
+          id?: string
+          quantity: number
+          total_price?: number | null
+          unit_price: number
+          product_id?: string | null
+        }
+        Update: {
+          budget_id?: string | null
+          description?: string
+          id?: string
+          quantity?: number
+          total_price?: number | null
+          unit_price?: number
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budget_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]

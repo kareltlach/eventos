@@ -49,7 +49,7 @@ export default function RegisterPage() {
               <Orbit className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-white">Create Account</h1>
-            <p className="text-zinc-400 text-sm">Join the next generation of events</p>
+            <p className="text-zinc-400 text-sm">Join the Evento HIGH community</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

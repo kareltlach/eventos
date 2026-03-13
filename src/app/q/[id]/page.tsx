@@ -62,14 +62,18 @@ export default function PublicQuotePage() {
       setItems(itemsData || [])
 
       // 3. Fetch Org Info
-      const { data: orgData, error: orgError } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("id", budgetData.org_id)
-        .maybeSingle()
-      
-      if (orgError) throw orgError
-      setOrg(orgData)
+      if (budgetData.org_id) {
+        const { data: orgData, error: orgError } = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", budgetData.org_id)
+          .maybeSingle()
+        
+        if (orgError) throw orgError
+        setOrg(orgData)
+      } else {
+        console.warn("Budget request missing org_id")
+      }
 
     } catch (err: any) {
       console.error("Error fetching budget:", err)
@@ -244,7 +248,7 @@ export default function PublicQuotePage() {
 
             <div className="p-1">
               <p className="text-[10px] text-center text-zinc-600 leading-relaxed font-medium uppercase tracking-widest">
-                Gerado via Antigravity Cloud em parceria com {org?.name}
+                Gerado via Evento HIGH em parceria com {org?.name}
               </p>
             </div>
           </div>

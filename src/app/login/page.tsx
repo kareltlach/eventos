@@ -28,7 +28,7 @@ export default function LoginPage() {
       if (error) {
         toast.error(error.message)
       } else {
-        toast.success("Welcome back to Antigravity!")
+        toast.success("Welcome back to Evento HIGH!")
         window.location.href = "/"
       }
     } catch {
@@ -55,7 +55,7 @@ export default function LoginPage() {
             <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-2 border border-white/20">
               <Orbit className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Antigravity</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Evento HIGH</h1>
             <p className="text-zinc-400 text-sm">Elevate your event experience</p>
           </div>
 

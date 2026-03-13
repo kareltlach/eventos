@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { 
   Search, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
   MoreVertical,
   Trash2,
   FileEdit,
@@ -17,7 +14,6 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { formatCurrency } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -42,9 +38,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 import { updateLeadStatusAction, deleteLeadAction } from "@/app/actions/leads"
 import { useAction } from "next-safe-action/hooks"
+
+interface EventDetails {
+  date?: string
+  location?: string
+}
 
 interface Lead {
   id: string
@@ -54,7 +54,7 @@ interface Lead {
   status: string
   created_at: string
   total_amount: number
-  event_details: any
+  event_details: EventDetails | null
   budget_items: {
     id: string
     description: string

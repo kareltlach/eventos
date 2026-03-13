@@ -13,7 +13,8 @@ import {
   Package, 
   FileText,
   Search,
-  Plus
+  Plus,
+  MousePointerClick
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -93,6 +94,12 @@ export function Sidebar({ profile }: SidebarProps) {
           icon={<FileText className="w-4 h-4" />} 
           label="Budgets" 
           active={pathname.startsWith("/budgets")} 
+        />
+        <NavItem 
+          href="/leads" 
+          icon={<MousePointerClick className="w-4 h-4" />} 
+          label="Leads" 
+          active={pathname === "/leads"} 
         />
         
         <div className="mt-6 mb-2 px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">

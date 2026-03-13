@@ -325,6 +325,47 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      },
+      notifications: {
+        Row: {
+          id: string
+          created_at: string
+          org_id: string
+          title: string
+          message: string
+          type: string
+          data: Json | null
+          read: boolean
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          org_id: string
+          title: string
+          message: string
+          type: string
+          data?: Json | null
+          read?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          org_id?: string
+          title?: string
+          message?: string
+          type?: string
+          data?: Json | null
+          read?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

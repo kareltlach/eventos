@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Trash2, Edit2, Loader2, Search, X } from "lucide-react"
+import { Plus, Search, Loader2, Edit2, Trash2, X } from "lucide-react"
+import { formatCurrency } from "@/lib/utils"
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([])
@@ -267,7 +268,7 @@ export default function ProductsPage() {
                     <td className="p-4">
                       <div className="flex flex-col items-center">
                         <span className="font-mono text-sm">
-                          ${(parseFloat(prod.base_price) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} / {prod.unit_types?.symbol || 'un'}
+                          R$ {formatCurrency(prod.base_price)} / {prod.unit_types?.symbol || 'un'}
                         </span>
                       </div>
                     </td>

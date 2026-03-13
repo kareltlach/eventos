@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { format } from "date-fns"
+import { cn, formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
 import { Plus, Trash2, Search, ArrowLeft, Loader2, Save, Users, ShoppingCart, Calendar } from "lucide-react"
 import Link from "next/link"
@@ -288,7 +290,7 @@ export default function NewBudgetPage() {
             <div className="mt-auto pt-6 border-t border-white/5 flex justify-between items-center px-4">
               <span className="text-zinc-500 font-medium">Grand Total</span>
               <span className="text-4xl font-bold text-white tracking-tighter font-mono">
-                ${calculateTotal().toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                R$ {formatCurrency(calculateTotal())}
               </span>
             </div>
           </div>
@@ -321,7 +323,7 @@ export default function NewBudgetPage() {
                     <div className="flex flex-col">
                       <span className="font-bold text-sm text-white group-hover:text-white transition-colors">{p.name}</span>
                       <div className="flex justify-between items-center mt-1">
-                        <span className="text-[10px] text-zinc-500 font-mono tracking-tight">${parseFloat(p.base_price).toLocaleString()} / {p.unit_types?.symbol}</span>
+                        <span className="text-[10px] text-zinc-500 font-mono tracking-tight">R$ {formatCurrency(p.base_price)} / {p.unit_types?.symbol}</span>
                         <Plus className="w-3 h-3 text-zinc-500 group-hover:text-white transition-colors" />
                       </div>
                     </div>

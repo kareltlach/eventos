@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { FileText, Calendar, MapPin, Check, Download, Printer, Clock, XCircle, AlertCircle } from "lucide-react"
 import { useParams } from "next/navigation"
+import { cn, formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { createCheckoutSession } from "@/app/actions/payments"
 
@@ -206,11 +207,11 @@ export default function PublicQuotePage() {
                       <div className="flex flex-col gap-1">
                         <span className="font-bold text-white tracking-tight">{item.description}</span>
                         <span className="text-xs text-zinc-500 font-medium">
-                          {item.quantity} {item.products?.unit_types?.symbol || 'un'} <span className="mx-1 text-zinc-700">•</span> R$ {Number(item.unit_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} un
+                          {item.quantity} {item.products?.unit_types?.symbol || 'un'} <span className="mx-1 text-zinc-700">•</span> R$ {formatCurrency(item.unit_price)} un
                         </span>
                       </div>
                       <span className="font-mono font-black text-white text-lg">
-                        R$ {Number(item.total_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        R$ {formatCurrency(item.total_price)}
                       </span>
                     </div>
                   ))}
@@ -223,7 +224,7 @@ export default function PublicQuotePage() {
                   <p className="text-zinc-400 text-xs">Válido por 7 dias corridos</p>
                 </div>
                 <span className="text-5xl font-black text-white tracking-tighter font-mono bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-500">
-                  R$ {(budget.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  R$ {formatCurrency(budget.total_amount)}
                 </span>
               </div>
             </div>

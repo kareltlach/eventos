@@ -10,6 +10,7 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { Mail, MessageCircle, Copy, Share2 } from "lucide-react"
 import { sendQuoteEmail } from "@/app/actions/notifications"
+import { formatCurrency } from "@/lib/utils"
 
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<any[]>([])
@@ -166,7 +167,7 @@ export default function BudgetsPage() {
                     </td>
                     <td className="p-4 text-right">
                       <span className="font-mono text-white text-lg font-bold">
-                        ${(budget.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        R$ {formatCurrency(budget.total_amount)}
                       </span>
                     </td>
                     <td className="p-4 text-right">

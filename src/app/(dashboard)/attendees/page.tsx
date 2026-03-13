@@ -206,7 +206,7 @@ export default function AttendeesPage() {
           />
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        <Dialog open={isDialogOpen} onOpenChange={(open: boolean) => {
           setIsDialogOpen(open)
           if (!open) {
             setEditingAttendee(null)

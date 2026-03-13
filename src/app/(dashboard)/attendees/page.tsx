@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { 
-  Plus, Search, Users, UserPlus, Mail, Phone, 
+  Search, Users, UserPlus, Mail, Phone, 
   Building2, Tag, CheckCircle2, XCircle, 
-  MoreVertical, Edit2, Trash2, Filter
+  MoreVertical, Edit2, Trash2
 } from "lucide-react"
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
@@ -19,7 +19,6 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select"
-import { PageTransition } from "@/components/page-transition"
 
 type AttendeeType = "guest" | "vip" | "speaker" | "staff" | "vendor"
 type AttendeeStatus = "pending" | "confirmed" | "cancelled" | "checked_in"
@@ -56,11 +55,7 @@ export default function AttendeesPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchAttendees()
-  }, [])
-
-  async function fetchAttendees() {
+  const fetchAttendees = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -70,12 +65,17 @@ export default function AttendeesPage() {
       
       if (error) throw error
       setAttendees(data || [])
-    } catch (err: any) {
+    } catch (err) {
+      console.error(err)
       toast.error("Erro ao carregar participantes")
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchAttendees()
+  }, [fetchAttendees])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -126,8 +126,9 @@ export default function AttendeesPage() {
         notes: ""
       })
       fetchAttendees()
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar participante")
+    } catch (err) {
+      const error = err as Error
+      toast.error(error.message || "Erro ao salvar participante")
     }
   }
 
@@ -143,7 +144,7 @@ export default function AttendeesPage() {
       if (error) throw error
       toast.success("Participante excluído")
       fetchAttendees()
-    } catch (err: any) {
+    } catch {
       toast.error("Erro ao excluir participante")
     }
   }
@@ -276,7 +277,7 @@ export default function AttendeesPage() {
                   <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Type</label>
                   <Select 
                     value={formData.attendee_type} 
-                    onValueChange={(val: any) => setFormData({...formData, attendee_type: val})}
+                    onValueChange={(val: AttendeeType) => setFormData({...formData, attendee_type: val})}
                   >
                     <SelectTrigger className="bg-white/5 border-white/10 focus:bg-white/10 h-11 text-white">
                       <SelectValue />
@@ -294,7 +295,7 @@ export default function AttendeesPage() {
                   <label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Status</label>
                   <Select 
                     value={formData.status} 
-                    onValueChange={(val: any) => setFormData({...formData, status: val})}
+                    onValueChange={(val: AttendeeStatus) => setFormData({...formData, status: val})}
                   >
                     <SelectTrigger className="bg-white/5 border-white/10 focus:bg-white/10 h-11 text-white">
                       <SelectValue />

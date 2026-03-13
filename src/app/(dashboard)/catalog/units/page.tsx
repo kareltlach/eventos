@@ -1,14 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Plus, Trash2, Edit2, Loader2, Search, Check, X, Ruler } from "lucide-react"
 
+interface UnitType {
+  id: string
+  name: string
+  symbol: string
+  created_at: string
+}
+
 export default function UnitsPage() {
-  const [units, setUnits] = useState<any[]>([])
+  const [units, setUnits] = useState<UnitType[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -23,11 +30,7 @@ export default function UnitsPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchUnits()
-  }, [])
-
-  async function fetchUnits() {
+  const fetchUnits = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("unit_types")
@@ -35,13 +38,17 @@ export default function UnitsPage() {
         .order("name")
       
       if (error) throw error
-      setUnits(data || [])
-    } catch (err: any) {
+      setUnits((data as UnitType[]) || [])
+    } catch {
       toast.error("Failed to load units")
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchUnits()
+  }, [fetchUnits])
 
   const filteredUnits = units.filter(unit => 
     unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -66,7 +73,7 @@ export default function UnitsPage() {
         .insert({
           name: newName.trim(),
           symbol: newSymbol.trim(),
-          org_id: profile?.org_id
+          org_id: profile?.org_id as string
         })
 
       if (error) throw error
@@ -76,8 +83,9 @@ export default function UnitsPage() {
       setNewSymbol("")
       setIsAdding(false)
       fetchUnits()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      const error = err as Error
+      toast.error(error.message)
     } finally {
       setIsSaving(false)
     }
@@ -104,8 +112,9 @@ export default function UnitsPage() {
       toast.success("Unit updated")
       setEditingId(null)
       fetchUnits()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      const error = err as Error
+      toast.error(error.message)
     } finally {
       setIsSaving(false)
     }
@@ -123,8 +132,9 @@ export default function UnitsPage() {
       if (error) throw error
       toast.success("Unit deleted")
       fetchUnits()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      const error = err as Error
+      toast.error(error.message)
     }
   }
 

@@ -17,7 +17,7 @@ export const sendQuoteEmail = actionClient
   .schema(emailSchema)
   .action(async ({ parsedInput: { to, customerName, quoteUrl, orgName } }) => {
     try {
-      const { data, error } = await resend.emails.send({
+      const { error } = await resend.emails.send({
         from: `${orgName} <onboarding@resend.dev>`, // In production, use your verified domain
         to: [to],
         subject: `Proposta Comercial de ${orgName}`,

@@ -1,6 +1,5 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { CheckCircle2, PartyPopper } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"

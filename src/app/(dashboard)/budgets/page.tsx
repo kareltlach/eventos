@@ -1,29 +1,34 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Plus, Search, FileText, Clock, CheckCircle2, XCircle, Send, MoreVertical, ExternalLink } from "lucide-react"
+import { Plus, Search, FileText, Clock, CheckCircle2, XCircle, Send, ExternalLink, Mail, MessageCircle, Copy } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
-import { Mail, MessageCircle, Copy, Share2 } from "lucide-react"
 import { sendQuoteEmail } from "@/app/actions/notifications"
 import { formatCurrency } from "@/lib/utils"
 
+interface BudgetRequest {
+  id: string
+  customer_name: string | null
+  customer_email: string | null
+  status: string
+  created_at: string
+  total_amount: number
+  organizations?: { name: string } | null
+}
+
 export default function BudgetsPage() {
-  const [budgets, setBudgets] = useState<any[]>([])
+  const [budgets, setBudgets] = useState<BudgetRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchBudgets()
-  }, [])
-
-  async function fetchBudgets() {
+  const fetchBudgets = useCallback(async () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -35,13 +40,17 @@ export default function BudgetsPage() {
         .order("created_at", { ascending: false })
       
       if (error) throw error
-      setBudgets(data || [])
-    } catch (err: any) {
+      setBudgets((data as BudgetRequest[]) || [])
+    } catch {
       toast.error("Failed to load budgets")
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchBudgets()
+  }, [fetchBudgets])
 
   const handleCopyLink = (id: string) => {
     const url = `${window.location.origin}/q/${id}`
@@ -49,21 +58,21 @@ export default function BudgetsPage() {
     toast.success("Link copiado para a área de transferência!")
   }
 
-  const handleWhatsApp = (budget: any) => {
+  const handleWhatsApp = (budget: BudgetRequest) => {
     const url = `${window.location.origin}/q/${budget.id}`
     const message = `Olá ${budget.customer_name}! Segue a proposta da ${budget.organizations?.name || 'Evento HIGH'} para o seu evento: ${url}`
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
   }
 
-  const handleSendEmail = async (budget: any) => {
+  const handleSendEmail = async (budget: BudgetRequest) => {
     if (!budget.customer_email) {
       toast.error("Cliente não possui email cadastrado.")
       return
     }
 
     const promise = sendQuoteEmail({
-      to: budget.customer_email,
-      customerName: budget.customer_name,
+      to: budget.customer_email!,
+      customerName: budget.customer_name || 'Cliente',
       quoteUrl: `${window.location.origin}/q/${budget.id}`,
       orgName: budget.organizations?.name || 'Evento HIGH'
     })

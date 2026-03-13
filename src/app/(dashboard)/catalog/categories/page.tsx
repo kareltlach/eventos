@@ -1,14 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Plus, Trash2, Edit2, Loader2, Search, Check, X, Tag } from "lucide-react"
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+  created_at: string
+}
+
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -21,11 +28,7 @@ export default function CategoriesPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
-  async function fetchCategories() {
+  const fetchCategories = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("product_categories")
@@ -33,13 +36,17 @@ export default function CategoriesPage() {
         .order("name")
       
       if (error) throw error
-      setCategories(data || [])
-    } catch (err: any) {
+      setCategories((data as Category[]) || [])
+    } catch {
       toast.error("Failed to load categories")
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchCategories()
+  }, [fetchCategories])
 
   const filteredCategories = categories.filter(cat => 
     cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,14 +97,15 @@ export default function CategoriesPage() {
       setNewName("")
       setIsAdding(false)
       fetchCategories()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      const error = err as Error
+      toast.error(error.message)
     } finally {
       setIsSaving(false)
     }
   }
 
-  async function handleSaveEdit(id: string, originalSlug: string) {
+  async function handleSaveEdit(id: string) {
     const trimmedName = editName.trim()
     if (!trimmedName) {
       toast.error("Category name cannot be empty")
@@ -124,8 +132,9 @@ export default function CategoriesPage() {
       toast.success("Category updated")
       setEditingId(null)
       fetchCategories()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      const error = err as Error
+      toast.error(error.message)
     } finally {
       setIsSaving(false)
     }
@@ -143,8 +152,9 @@ export default function CategoriesPage() {
       if (error) throw error
       toast.success("Category deleted")
       fetchCategories()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err) {
+      const error = err as Error
+      toast.error(error.message)
     }
   }
 
@@ -212,7 +222,7 @@ export default function CategoriesPage() {
                       size="sm" 
                       variant="ghost" 
                       className="text-green-400 hover:bg-green-400/10 h-8 font-medium" 
-                      onClick={() => handleSaveEdit(cat.id, cat.slug)}
+                      onClick={() => handleSaveEdit(cat.id)}
                       disabled={isSaving}
                     >
                       {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Check className="w-3.5 h-3.5 mr-1" />}

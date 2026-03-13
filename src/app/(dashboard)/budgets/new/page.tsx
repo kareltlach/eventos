@@ -1,15 +1,30 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { format } from "date-fns"
-import { cn, formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
-import { Plus, Trash2, Search, ArrowLeft, Loader2, Save, Users, ShoppingCart, Calendar } from "lucide-react"
+import { Plus, Trash2, Search, ArrowLeft, Loader2, Save, Users, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+
+interface Product {
+  id: string
+  name: string
+  base_price: number | null
+  unit_types: { symbol: string } | null
+}
+
+interface BudgetItem {
+  product_id: string
+  name: string
+  symbol: string
+  quantity: number
+  unit_price: number
+  total: number
+}
 
 export default function NewBudgetPage() {
   const router = useRouter()
@@ -19,7 +34,7 @@ export default function NewBudgetPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Catalog Data
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   
   // Form State
   const [customer, setCustomer] = useState({
@@ -30,14 +45,10 @@ export default function NewBudgetPage() {
     event_location: ""
   })
   
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<BudgetItem[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
-
-  async function fetchProducts() {
+  const fetchProducts = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("products")
@@ -47,15 +58,19 @@ export default function NewBudgetPage() {
         `)
         .order("name")
       if (error) throw error
-      setProducts(data || [])
-    } catch (err: any) {
+      setProducts((data as Product[]) || [])
+    } catch {
       toast.error("Failed to load products")
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
 
-  const addItem = (product: any) => {
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
+
+  const addItem = (product: Product) => {
     const newItem = {
       product_id: product.id,
       name: product.name,
@@ -72,14 +87,27 @@ export default function NewBudgetPage() {
     setItems(items.filter((_, i) => i !== index))
   }
 
-  const updateItem = (index: number, field: string, value: any) => {
+  const updateItem = (index: number, field: keyof BudgetItem, value: string | number) => {
     const newItems = [...items]
-    newItems[index][field] = value
+    const item = { ...newItems[index] }
     
-    if (field === 'quantity' || field === 'unit_price') {
-      newItems[index].total = newItems[index].quantity * newItems[index].unit_price
+    if (field === 'quantity' || field === 'unit_price' || field === 'total') {
+      const numValue = typeof value === 'string' ? parseFloat(value) : value
+      if (field === 'quantity') item.quantity = numValue
+      if (field === 'unit_price') item.unit_price = numValue
+      if (field === 'total') item.total = numValue
+    } else {
+      const strValue = String(value)
+      if (field === 'product_id') item.product_id = strValue
+      if (field === 'name') item.name = strValue
+      if (field === 'symbol') item.symbol = strValue
     }
     
+    if (field === 'quantity' || field === 'unit_price') {
+      item.total = item.quantity * item.unit_price
+    }
+    
+    newItems[index] = item
     setItems(newItems)
   }
 
@@ -157,8 +185,9 @@ export default function NewBudgetPage() {
 
       toast.success("Budget created successfully!")
       router.push("/budgets")
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      const error = err as Error
+      toast.error(error.message)
     } finally {
       setIsSubmitting(false)
     }

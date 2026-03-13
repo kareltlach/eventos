@@ -1,26 +1,110 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Zap, FileText, Calendar, MapPin, Check, Download, Printer, Clock, XCircle, AlertCircle } from "lucide-react"
+import { Zap, Calendar, MapPin, Check, Download, Clock, AlertCircle } from "lucide-react"
 import { useParams } from "next/navigation"
-import { cn, formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import { format } from "date-fns"
 import { createCheckoutSession } from "@/app/actions/payments"
+
+interface Budget {
+  id: string
+  org_id: string | null
+  customer_name: string | null
+  customer_email: string | null
+  customer_phone: string | null
+  total_amount: number | null
+  created_at: string | null
+  event_details?: { date?: string; location?: string } | null
+}
+
+interface BudgetItem {
+  id: string
+  description: string
+  quantity: number
+  unit_price: number
+  total_price: number | null
+  products?: {
+    name: string
+    unit_types: { symbol: string } | null
+  } | null
+}
+
+interface Organization {
+  id: string
+  name: string
+}
 
 export default function PublicQuotePage() {
   const params = useParams()
   const id = params?.id as string
   const supabase = createClient()
   
-  const [budget, setBudget] = useState<any>(null)
-  const [items, setItems] = useState<any[]>([])
-  const [org, setOrg] = useState<any>(null)
+  const [budget, setBudget] = useState<Budget | null>(null)
+  const [items, setItems] = useState<BudgetItem[]>([])
+  const [org, setOrg] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAccepting, setIsAccepting] = useState(false)
   const [errorStatus, setErrorStatus] = useState<string | null>(null)
+
+  const fetchQuoteData = useCallback(async () => {
+    try {
+      // 1. Fetch Budget
+      const { data: budgetData, error: budgetError } = await supabase
+        .from("budget_requests")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle()
+      
+      if (budgetError) throw budgetError
+      
+      if (!budgetData) {
+        setErrorStatus("Orçamento não encontrado.")
+        return
+      }
+
+      setBudget(budgetData as Budget)
+
+      // 2. Fetch Items with joined products and unit types
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("budget_items")
+        .select(`
+          *,
+          products (
+            name,
+            unit_types (symbol)
+          )
+        `)
+        .eq("budget_id", id)
+      
+      if (itemsError) throw itemsError
+      setItems((itemsData || []) as unknown[] as BudgetItem[])
+
+      // 3. Fetch Org Info
+      if (budgetData.org_id) {
+        const { data: orgData, error: orgError } = await supabase
+          .from("organizations")
+          .select("*")
+          .eq("id", budgetData.org_id)
+          .maybeSingle()
+        
+        if (orgError) throw orgError
+        setOrg(orgData as Organization)
+      } else {
+        console.warn("Budget request missing org_id")
+      }
+
+    } catch (err: unknown) {
+      console.error("Error fetching budget:", err)
+      setErrorStatus("Ocorreu um erro ao carregar o orçamento.")
+      toast.error("Não foi possível carregar os dados.")
+    } finally {
+      setLoading(false)
+    }
+  }, [id, supabase])
 
   useEffect(() => {
     if (id) {
@@ -29,7 +113,7 @@ export default function PublicQuotePage() {
       setErrorStatus("ID do orçamento inválido.")
       setLoading(false)
     }
-  }, [id, params])
+  }, [id, params, fetchQuoteData])
 
   async function handleAccept() {
     if (!budget) return
@@ -38,8 +122,8 @@ export default function PublicQuotePage() {
     try {
       const result = await createCheckoutSession({
         budgetId: budget.id,
-        amount: budget.total_amount,
-        customerName: budget.customer_name,
+        amount: budget.total_amount || 0,
+        customerName: budget.customer_name || 'Cliente',
         customerEmail: budget.customer_email || undefined,
       })
 
@@ -58,61 +142,6 @@ export default function PublicQuotePage() {
     }
   }
 
-  async function fetchQuoteData() {
-    try {
-      // 1. Fetch Budget
-      const { data: budgetData, error: budgetError } = await supabase
-        .from("budget_requests")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle()
-      
-      if (budgetError) throw budgetError
-      
-      if (!budgetData) {
-        setErrorStatus("Orçamento não encontrado.")
-        return
-      }
-
-      setBudget(budgetData)
-
-      // 2. Fetch Items with joined products and unit types
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("budget_items")
-        .select(`
-          *,
-          products (
-            name,
-            unit_types (symbol)
-          )
-        `)
-        .eq("budget_id", id)
-      
-      if (itemsError) throw itemsError
-      setItems(itemsData || [])
-
-      // 3. Fetch Org Info
-      if (budgetData.org_id) {
-        const { data: orgData, error: orgError } = await supabase
-          .from("organizations")
-          .select("*")
-          .eq("id", budgetData.org_id)
-          .maybeSingle()
-        
-        if (orgError) throw orgError
-        setOrg(orgData)
-      } else {
-        console.warn("Budget request missing org_id")
-      }
-
-    } catch (err: any) {
-      console.error("Error fetching budget:", err)
-      setErrorStatus("Ocorreu um erro ao carregar o orçamento.")
-      toast.error("Não foi possível carregar os dados.")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (loading) {
     return (

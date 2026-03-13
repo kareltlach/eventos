@@ -3,10 +3,9 @@
 import { actionClient } from "@/lib/safe-action"
 import { z } from "zod"
 import Stripe from "stripe"
-import { createClient } from "@/lib/supabase/server"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-12-18.acacia", // Using exact supported version
+  apiVersion: "2026-02-25.clover",
 })
 
 const checkoutSchema = z.object({

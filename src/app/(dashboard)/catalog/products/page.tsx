@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,10 +8,32 @@ import { toast } from "sonner"
 import { Plus, Search, Loader2, Edit2, Trash2, X } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 
+interface Product {
+  id: string
+  name: string
+  description: string | null
+  base_price: number
+  category_id: string | null
+  unit_type_id: string | null
+  product_categories: { name: string } | null
+  unit_types: { symbol: string } | null
+}
+
+interface Category {
+  id: string
+  name: string
+}
+
+interface UnitType {
+  id: string
+  name: string
+  symbol: string
+}
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [units, setUnits] = useState<any[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [units, setUnits] = useState<UnitType[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -35,11 +57,7 @@ export default function ProductsPage() {
     p.product_categories?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  useEffect(() => {
-    fetchInitialData()
-  }, [])
-
-  async function fetchInitialData() {
+  const fetchInitialData = useCallback(async () => {
     setLoading(true)
     try {
       const [productsRes, categoriesRes, unitsRes] = await Promise.all([
@@ -56,15 +74,19 @@ export default function ProductsPage() {
       ])
 
       if (productsRes.error) throw productsRes.error
-      setProducts(productsRes.data || [])
-      setCategories(categoriesRes.data || [])
-      setUnits(unitsRes.data || [])
-    } catch (err: any) {
+      setProducts((productsRes.data as Product[]) || [])
+      setCategories((categoriesRes.data as Category[]) || [])
+      setUnits((unitsRes.data as UnitType[]) || [])
+    } catch {
       toast.error("Failed to load catalog data")
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    fetchInitialData()
+  }, [fetchInitialData])
 
   const resetForm = () => {
     setFormData({ name: "", description: "", base_price: "", category_id: "", unit_type_id: "" })
@@ -72,7 +94,7 @@ export default function ProductsPage() {
     setEditingId(null)
   }
 
-  const startEdit = (product: any) => {
+  const startEdit = (product: Product) => {
     setFormData({
       name: product.name,
       description: product.description || "",
@@ -119,8 +141,9 @@ export default function ProductsPage() {
       
       resetForm()
       fetchInitialData()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      const error = err as Error
+      toast.error(error.message)
     }
   }
 
@@ -136,8 +159,9 @@ export default function ProductsPage() {
       if (error) throw error
       toast.success("Product removed")
       fetchInitialData()
-    } catch (err: any) {
-      toast.error(err.message)
+    } catch (err: unknown) {
+      const error = err as Error
+      toast.error(error.message)
     }
   }
 

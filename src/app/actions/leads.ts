@@ -43,6 +43,11 @@ export const captureLeadAction = actionClient
   .action(async ({ parsedInput }) => {
     const supabase = createBypassClient()
 
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing!")
+      return { error: "Erro de configuração do servidor. Contate o suporte." }
+    }
+
     try {
       // 1. Create Budget Request (Lead)
       const { data: budget, error: budgetError } = await supabase
@@ -66,9 +71,19 @@ export const captureLeadAction = actionClient
         .select()
         .single()
 
-      if (budgetError || !budget) {
-        console.error("Capture Lead Error (Step 1):", budgetError)
-        return { error: "Falha ao criar lead. Tente novamente." }
+      if (budgetError) {
+        console.error("Capture Lead Error (Step 1 - Insert):", {
+          code: budgetError.code,
+          message: budgetError.message,
+          details: budgetError.details,
+          hint: budgetError.hint
+        })
+        return { error: `Falha ao criar lead: ${budgetError.message}` }
+      }
+
+      if (!budget) {
+        console.error("Capture Lead Error (Step 1 - No Data): Budget object is null despite no error.")
+        return { error: "Erro ao recuperar dados do lead criado." }
       }
 
       // 2. Create Budget Items
@@ -90,19 +105,24 @@ export const captureLeadAction = actionClient
       }
 
       // 3. Optional: Trigger internal notification
-      await supabase.from("notifications").insert({
-        org_id: parsedInput.orgId,
-        title: "Novo Lead Capturado 🚀",
-        message: `${parsedInput.customerName} enviou uma nova solicitação de orçamento.`,
-        type: "lead_captured",
-        data: { budget_id: budget.id }
-      })
+      try {
+        const { error: notifyError } = await supabase.from("notifications").insert({
+          org_id: parsedInput.orgId,
+          title: "Novo Lead Capturado 🚀",
+          message: `${parsedInput.customerName} enviou uma nova solicitação de orçamento.`,
+          type: "lead_captured",
+          data: { budget_id: budget.id }
+        })
+        if (notifyError) console.error("Notification Error (Non-blocking):", notifyError)
+      } catch (notifyErr) {
+        console.error("Notification Unexpected Error (Non-blocking):", notifyErr)
+      }
 
       revalidatePath("/leads")
       return { success: true, budgetId: budget.id }
     } catch (err) {
       console.error("Capture Lead Unexpected Error:", err)
-      return { error: "Ocorreu um erro inesperado." }
+      return { error: "Ocorreu um erro inesperado no servidor." }
     }
   })
 

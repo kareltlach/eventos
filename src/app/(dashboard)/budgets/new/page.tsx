@@ -104,6 +104,12 @@ export default function NewBudgetPage() {
         .select("org_id")
         .single()
 
+      console.log("Budget Creation - Step 1: Payload", {
+        org_id: profile?.org_id,
+        customer_name: customer.name,
+        total_amount: calculateTotal()
+      })
+
       // 1. Create Budget Request
       const { data: budget, error: budgetError } = await supabase
         .from("budget_requests")
@@ -120,7 +126,12 @@ export default function NewBudgetPage() {
         .select()
         .single()
 
-      if (budgetError) throw budgetError
+      if (budgetError) {
+        console.error("Budget Error (Step 1):", budgetError)
+        throw new Error(`Failed to create budget: ${budgetError.message}`)
+      }
+
+      console.log("Budget Creation - Step 1: Success", budget.id)
 
       // 2. Create Budget Items
       const budgetItemsPayload = items.map(item => ({
@@ -131,11 +142,18 @@ export default function NewBudgetPage() {
         unit_price: item.unit_price
       }))
 
+      console.log("Budget Creation - Step 2: Payload", budgetItemsPayload)
+
       const { error: itemsError } = await supabase
         .from("budget_items")
         .insert(budgetItemsPayload)
 
-      if (itemsError) throw itemsError
+      if (itemsError) {
+        console.error("Budget Items Error (Step 2):", itemsError)
+        throw new Error(`Failed to save items: ${itemsError.message}`)
+      }
+
+      console.log("Budget Creation - Step 2: Success")
 
       toast.success("Budget created successfully!")
       router.push("/budgets")

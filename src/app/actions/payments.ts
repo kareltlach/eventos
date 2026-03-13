@@ -6,7 +6,7 @@ import Stripe from "stripe"
 import { createClient } from "@/lib/supabase/server"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-01-27ts", // Using latest stable
+  apiVersion: "2024-12-18.acacia", // Using exact supported version
 })
 
 const checkoutSchema = z.object({
@@ -52,7 +52,8 @@ export const createCheckoutSession = actionClient
 
       return { url: session.url }
     } catch (error) {
-      console.error("Stripe Checkout Error:", error)
-      throw new Error("Não foi possível iniciar o processo de pagamento.")
+      console.error("Stripe Checkout ERROR:", error)
+      const errorMessage = error instanceof Error ? error.message : "Erro interno no Stripe"
+      throw new Error(`Processo de pagamento falhou: ${errorMessage}`)
     }
   })

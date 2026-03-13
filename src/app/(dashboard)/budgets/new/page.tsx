@@ -128,8 +128,7 @@ export default function NewBudgetPage() {
         product_id: item.product_id,
         description: item.name,
         quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: item.total
+        unit_price: item.unit_price
       }))
 
       const { error: itemsError } = await supabase

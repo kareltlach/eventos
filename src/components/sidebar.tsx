@@ -27,9 +27,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 
 interface SidebarProps {
-  user: {
-    email?: string | null
-  }
   profile: {
     full_name?: string | null
     role?: string | null
@@ -39,7 +36,7 @@ interface SidebarProps {
   } | null
 }
 
-export function Sidebar({ user, profile }: SidebarProps) {
+export function Sidebar({ profile }: SidebarProps) {
   const pathname = usePathname()
 
   return (

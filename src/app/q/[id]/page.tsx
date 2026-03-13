@@ -25,10 +25,8 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { 
-  ArrowUpRight, 
   Calendar,
   Clock,
-  Download,
   ShieldCheck,
   Loader2,
   Printer,
@@ -44,8 +42,7 @@ import {
   User,
   FileText
 } from "lucide-react"
-// @ts-ignore - html2pdf doesn't have official types easily available
-// Dynamic import will be handled in handleExportPDF
+
 
 
 interface Budget {
@@ -186,75 +183,117 @@ export default function PublicQuotePage() {
 
   const handleExportPDF = async () => {
     setIsExporting(true)
-    const toastId = toast.loading("Gerando PDF da proposta...")
-
-    // Dynamically import html2pdf.js and jspdf only on the client side
-    // @ts-ignore
-    const html2pdf = (await import('html2pdf.js')).default
-    
-    // Small delay to ensure any layout shifts are settled
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const input = document.getElementById('quote-content')
-    if (!input) {
-      toast.error("Content not found for PDF export.", { id: toastId })
-      setIsExporting(false)
-      return
-    }
+    const toastId = toast.loading("Gerando PDF oficial da proposta...")
 
     try {
-      const options = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `proposta-evento-${budget?.customer_name || 'id'}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          backgroundColor: "#09090b",
-          logging: false,
-          scrollY: -window.scrollY
+      const jsPDF = (await import('jspdf')).default
+      const autoTable = (await import('jspdf-autotable')).default
+      
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      
+      // --- HEADER & BRANDING ---
+      doc.setFillColor(9, 9, 11) // Dark background for header
+      doc.rect(0, 0, pageWidth, 40, 'F')
+      
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(22)
+      doc.setFont("helvetica", "bold")
+      doc.text(org?.name || "PROPOSTA COMERCIAL", 15, 25)
+      
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      doc.text("DOCUMENTO OFICIAL DE ORÇAMENTO", 15, 32)
+      
+      // --- PROPOSAL INFO ---
+      doc.setTextColor(63, 63, 70) // Zinc-600
+      doc.setFontSize(9)
+      doc.text("EMITIDO EM:", pageWidth - 50, 20)
+      doc.setTextColor(255, 255, 255)
+      doc.text(budget?.created_at ? format(new Date(budget.created_at), 'dd/MM/yyyy') : '--/--/--', pageWidth - 50, 25)
+      
+      doc.setTextColor(63, 63, 70)
+      doc.text("REFERÊNCIA:", pageWidth - 50, 32)
+      doc.setTextColor(255, 255, 255)
+      doc.text(`#${budget?.id.split('-')[0].toUpperCase()}`, pageWidth - 50, 37)
+
+      // --- CLIENT DETAILS ---
+      let currentY = 55
+      doc.setTextColor(9, 9, 11)
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("DETALHES DO CLIENTE", 15, currentY)
+      
+      currentY += 8
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Cliente: ${budget?.customer_name || 'N/A'}`, 15, currentY)
+      doc.text(`Email: ${budget?.customer_email || 'N/A'}`, 15, currentY + 6)
+      doc.text(`Telefone: ${budget?.customer_phone || 'N/A'}`, 15, currentY + 12)
+
+      // --- EVENT DETAILS ---
+      const eventX = pageWidth / 2 + 10
+      doc.setFont("helvetica", "bold")
+      doc.text("DETALHES DO EVENTO", eventX, 55)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Data: ${budget?.event_details?.date ? format(new Date(budget.event_details.date), 'dd/MM/yyyy') : 'A definir'}`, eventX, currentY)
+      doc.text(`Local: ${budget?.event_details?.location || 'A definir'}`, eventX, currentY + 6)
+
+      // --- ITEMS TABLE ---
+      currentY = 85
+      const tableData = items.map(item => [
+        item.description,
+        `${item.quantity} ${item.products?.unit_types?.symbol || 'un'}`,
+        `R$ ${formatCurrency(item.unit_price)}`,
+        `R$ ${formatCurrency(item.total_price || 0)}`
+      ])
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Descrição do Serviço', 'Qtd', 'Preço Unit.', 'Total']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [15, 15, 20], 
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold'
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      }
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        styles: { fontSize: 9, cellPadding: 5 },
+        columnStyles: {
+          0: { cellWidth: 'auto' },
+          1: { halign: 'center', cellWidth: 30 },
+          2: { halign: 'right', cellWidth: 40 },
+          3: { halign: 'right', cellWidth: 40, fontStyle: 'bold' }
+        }
+      })
 
-      // Temporarily hide elements with .pdf-hide
-      const hideElements = document.querySelectorAll('.pdf-hide')
-      hideElements.forEach(el => (el as HTMLElement).style.display = 'none')
+      // --- TOTALS ---
+      // @ts-expect-error - lastAutoTable is available on doc
+      const finalY = doc.lastAutoTable.finalY + 15
+      
+      doc.setFillColor(244, 244, 245) // zinc-100
+      doc.rect(pageWidth - 90, finalY - 5, 75, 25, 'F')
+      
+      doc.setTextColor(113, 113, 122) // zinc-500
+      doc.setFontSize(10)
+      doc.text("INVESTIMENTO TOTAL", pageWidth - 85, finalY + 5)
+      
+      doc.setTextColor(9, 9, 11)
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.text(`R$ ${formatCurrency(budget?.total_amount || 0)}`, pageWidth - 85, finalY + 15)
 
-      // Ensure the content is visible and layout is stable
-      if (input) {
-        // Force all opacities and transforms for capture to avoid "black void" issues with motion
-        const style = document.createElement('style')
-        style.id = 'pdf-export-overrides'
-        style.innerHTML = `
-          #quote-content * { 
-            opacity: 1 !important; 
-            visibility: visible !important;
-            transform: none !important;
-            transition: none !important;
-          }
-        `
-        document.head.appendChild(style)
+      // --- FOOTER ---
+      doc.setFontSize(8)
+      doc.setTextColor(161, 161, 170) // zinc-400
+      doc.text("Esta proposta é válida por 7 dias corridos.", 15, doc.internal.pageSize.getHeight() - 15)
+      doc.text(`${org?.name} - Tecnologia para Eventos de Alto Padrão`, 15, doc.internal.pageSize.getHeight() - 10)
 
-        const originalWidth = input.style.width
-        const originalMaxWidth = input.style.maxWidth
-        
-        input.style.width = '1200px'
-        input.style.maxWidth = 'none'
-        
-        await html2pdf().set(options).from(input).save()
-        
-        // Restore styles
-        input.style.width = originalWidth
-        input.style.maxWidth = originalMaxWidth
-        document.getElementById('pdf-export-overrides')?.remove()
-      }
-
-      // Restore hidden elements
-      hideElements.forEach(el => (el as HTMLElement).style.display = '')
-
-      toast.success("PDF exportado com sucesso!", { id: toastId })
+      doc.save(`proposta-evento-${budget?.customer_name || 'id'}.pdf`)
+      
+      toast.success("PDF gerado com sucesso!", { id: toastId })
     } catch (error) {
       console.error("PDF Export Error:", error)
       toast.error("Erro ao gerar PDF. Tente novamente.", { id: toastId })

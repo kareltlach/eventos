@@ -46,7 +46,7 @@ export default async function DashboardPage() {
             Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}
           </h1>
           <p className="text-muted-foreground text-sm mt-1 font-medium">
-            Here's what's happening with your events today.
+            Here&apos;s what&apos;s happening with your events today.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
               </div>
               <h4 className="font-semibold text-sm text-foreground">No events this week</h4>
               <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
-                You're all caught up. Start planning your next project now.
+                You&apos;re all caught up. Start planning your next project now.
               </p>
               <Button variant="link" size="sm" className="mt-4 text-primary text-xs font-bold gap-1 group/btn">
                 Create Event <ArrowUpRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />

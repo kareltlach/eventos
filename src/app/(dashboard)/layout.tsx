@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-black text-white flex">
-      <Sidebar user={user} profile={profile} />
+      <Sidebar profile={profile} />
       <NotificationListener orgId={profile?.org_id} />
       <main className="flex-1 md:ml-64 p-4 md:p-6 overflow-y-auto bg-black">
 

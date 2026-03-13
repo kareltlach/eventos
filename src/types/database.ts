@@ -278,6 +278,53 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      },
+      attendees: {
+        Row: {
+          id: string
+          org_id: string
+          full_name: string
+          email: string | null
+          phone: string | null
+          company: string | null
+          attendee_type: "guest" | "vip" | "speaker" | "staff" | "vendor"
+          status: "pending" | "confirmed" | "cancelled" | "checked_in"
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          org_id: string
+          full_name: string
+          email?: string | null
+          phone?: string | null
+          company?: string | null
+          attendee_type?: "guest" | "vip" | "speaker" | "staff" | "vendor"
+          status?: "pending" | "confirmed" | "cancelled" | "checked_in"
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          org_id?: string
+          full_name?: string
+          email?: string | null
+          phone?: string | null
+          company?: string | null
+          attendee_type?: "guest" | "vip" | "speaker" | "staff" | "vendor"
+          status?: "pending" | "confirmed" | "cancelled" | "checked_in"
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendees_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
